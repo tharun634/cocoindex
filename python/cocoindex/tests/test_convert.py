@@ -1160,6 +1160,37 @@ def test_full_roundtrip_scalar_with_python_types() -> None:
     validate_full_roundtrip(instance, MixedStruct)
 
 
+def test_roundtrip_simple_struct_to_dict_binding() -> None:
+    """Test struct -> dict binding with Any annotation."""
+
+    @dataclass
+    class SimpleStruct:
+        first_name: str
+        last_name: str
+
+    instance = SimpleStruct("John", "Doe")
+    expected_dict = {"first_name": "John", "last_name": "Doe"}
+
+    # Test Any annotation
+    validate_full_roundtrip(
+        instance,
+        SimpleStruct,
+        (expected_dict, Any),
+        (expected_dict, dict),
+        (expected_dict, dict[Any, Any]),
+        (expected_dict, dict[str, Any]),
+        # For simple struct, all fields have the same type, so we can directly use the type as the dict value type.
+        (expected_dict, dict[Any, str]),
+        (expected_dict, dict[str, str]),
+    )
+
+    with pytest.raises(ValueError):
+        validate_full_roundtrip(instance, SimpleStruct, (expected_dict, dict[str, int]))
+
+    with pytest.raises(ValueError):
+        validate_full_roundtrip(instance, SimpleStruct, (expected_dict, dict[int, Any]))
+
+
 def test_roundtrip_struct_to_dict_binding() -> None:
     """Test struct -> dict binding with Any annotation."""
 
@@ -1173,7 +1204,20 @@ def test_roundtrip_struct_to_dict_binding() -> None:
     expected_dict = {"name": "test", "value": 42, "price": 3.14}
 
     # Test Any annotation
-    validate_full_roundtrip(instance, SimpleStruct, (expected_dict, Any))
+    validate_full_roundtrip(
+        instance,
+        SimpleStruct,
+        (expected_dict, Any),
+        (expected_dict, dict),
+        (expected_dict, dict[Any, Any]),
+        (expected_dict, dict[str, Any]),
+    )
+
+    with pytest.raises(ValueError):
+        validate_full_roundtrip(instance, SimpleStruct, (expected_dict, dict[str, str]))
+
+    with pytest.raises(ValueError):
+        validate_full_roundtrip(instance, SimpleStruct, (expected_dict, dict[int, Any]))
 
 
 def test_roundtrip_struct_to_dict_explicit() -> None:
@@ -1289,7 +1333,13 @@ def test_roundtrip_ltable_to_list_dict_binding() -> None:
     ]
 
     # Test Any annotation
-    validate_full_roundtrip(users, list[User], (expected_list_dict, Any))
+    validate_full_roundtrip(
+        users,
+        list[User],
+        (expected_list_dict, Any),
+        (expected_list_dict, list[Any]),
+        (expected_list_dict, list[dict[str, Any]]),
+    )
 
 
 def test_roundtrip_ktable_to_dict_dict_binding() -> None:
@@ -1313,7 +1363,17 @@ def test_roundtrip_ktable_to_dict_dict_binding() -> None:
     }
 
     # Test Any annotation
-    validate_full_roundtrip(products, dict[str, Product], (expected_dict_dict, Any))
+    validate_full_roundtrip(
+        products,
+        dict[str, Product],
+        (expected_dict_dict, Any),
+        (expected_dict_dict, dict),
+        (expected_dict_dict, dict[Any, Any]),
+        (expected_dict_dict, dict[str, Any]),
+        (expected_dict_dict, dict[Any, dict[Any, Any]]),
+        (expected_dict_dict, dict[str, dict[Any, Any]]),
+        (expected_dict_dict, dict[str, dict[str, Any]]),
+    )
 
 
 def test_roundtrip_ktable_with_complex_key() -> None:
@@ -1339,7 +1399,28 @@ def test_roundtrip_ktable_with_complex_key() -> None:
     }
 
     # Test Any annotation
-    validate_full_roundtrip(orders, dict[OrderKey, Order], (expected_dict_dict, Any))
+    validate_full_roundtrip(
+        orders,
+        dict[OrderKey, Order],
+        (expected_dict_dict, Any),
+        (expected_dict_dict, dict),
+        (expected_dict_dict, dict[Any, Any]),
+        (expected_dict_dict, dict[Any, dict[str, Any]]),
+        (
+            {
+                ("shop1", 1): Order("Alice", 100.0),
+                ("shop2", 2): Order("Bob", 200.0),
+            },
+            dict[Any, Order],
+        ),
+        (
+            {
+                OrderKey("shop1", 1): {"customer": "Alice", "total": 100.0},
+                OrderKey("shop2", 2): {"customer": "Bob", "total": 200.0},
+            },
+            dict[OrderKey, Any],
+        ),
+    )
 
 
 def test_roundtrip_ltable_with_nested_structs() -> None:
