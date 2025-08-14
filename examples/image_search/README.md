@@ -68,7 +68,21 @@ export OLLAMA_MODEL="gemma3"  # Optional, for caption generation
 
 - Configure model (optional):
   ```sh
+  # All ColVision models supported by colpali-engine are available
+  # See https://github.com/illuin-tech/colpali#list-of-colvision-models for the complete list
+
+  # ColPali models (colpali-*) - PaliGemma-based, best for general document retrieval
   export COLPALI_MODEL="vidore/colpali-v1.2"  # Default model
+  export COLPALI_MODEL="vidore/colpali-v1.3"  # Latest version
+
+  # ColQwen2 models (colqwen-*) - Qwen2-VL-based, excellent for multilingual text (29+ languages) and general vision
+  export COLPALI_MODEL="vidore/colqwen2-v1.0"
+  export COLPALI_MODEL="vidore/colqwen2.5-v0.2"  # Latest Qwen2.5 model
+
+  # ColSmol models (colsmol-*) - Lightweight, good for resource-constrained environments
+  export COLPALI_MODEL="vidore/colSmol-256M"
+
+  # Any other ColVision models from https://github.com/illuin-tech/colpali are supported
   ```
 
 - Run ColPali Backend:
