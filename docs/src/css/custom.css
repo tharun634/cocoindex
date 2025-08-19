@@ -97,11 +97,17 @@
   }
 }
 
+.navbar__logo{
+  height: 24px;
+  line-height: 24px;
+  margin-right: 4px;
+}
+
 .navbar__title {
-  font-family: 'Questrial', sans-serif;
-  font-size: 1.125rem;
-  /* 18px */
+  font-size: 1.125rem; /* 18px */
   color: var(--my-color-text-black);
+  font-weight: bold;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
 }
 
 .navbar {
@@ -110,7 +116,9 @@
   /* 14px */
   border-bottom: 1px solid var(--ifm-color-emphasis-200);
 }
-
+.navbar__item{
+  margin-top: 3px;
+}
 .sidebarItemTitle_pO2u,
 .navbar__items {
   font-family: 'Questrial', sans-serif;
