@@ -39,7 +39,7 @@ impl Default for SourceRowIndexingState {
 }
 
 struct SourceIndexingState {
-    rows: HashMap<value::FullKeyValue, SourceRowIndexingState>,
+    rows: HashMap<value::KeyValue, SourceRowIndexingState>,
     scan_generation: usize,
 }
 
@@ -55,7 +55,7 @@ pub struct SourceIndexingContext {
 pub const NO_ACK: Option<fn() -> Ready<Result<()>>> = None;
 
 struct LocalSourceRowStateOperator<'a> {
-    key: &'a value::FullKeyValue,
+    key: &'a value::KeyValue,
     indexing_state: &'a Mutex<SourceIndexingState>,
     update_stats: &'a Arc<stats::UpdateStats>,
 
@@ -75,7 +75,7 @@ enum RowStateAdvanceOutcome {
 
 impl<'a> LocalSourceRowStateOperator<'a> {
     fn new(
-        key: &'a value::FullKeyValue,
+        key: &'a value::KeyValue,
         indexing_state: &'a Mutex<SourceIndexingState>,
         update_stats: &'a Arc<stats::UpdateStats>,
     ) -> Self {
@@ -167,7 +167,7 @@ impl<'a> LocalSourceRowStateOperator<'a> {
 }
 
 pub struct ProcessSourceRowInput {
-    pub key: value::FullKeyValue,
+    pub key: value::KeyValue,
     /// `key_aux_info` is not available for deletions. It must be provided if `data.value` is `None`.
     pub key_aux_info: Option<serde_json::Value>,
     pub data: interface::PartialSourceRowData,
@@ -193,7 +193,7 @@ impl SourceIndexingContext {
             );
             while let Some(key_metadata) = key_metadata_stream.next().await {
                 let key_metadata = key_metadata?;
-                let source_pk = value::FullKeyValue::from_json(
+                let source_pk = value::KeyValue::from_json(
                     key_metadata.source_key,
                     &import_op.primary_key_schema,
                 )?;

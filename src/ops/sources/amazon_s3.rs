@@ -86,7 +86,7 @@ impl SourceExecutor for Executor {
                             if key.ends_with('/') { continue; }
                             if self.pattern_matcher.is_file_included(key) {
                                 batch.push(PartialSourceRow {
-                                    key: FullKeyValue::from_single_part(key.to_string()),
+                                    key: KeyValue::from_single_part(key.to_string()),
                                     key_aux_info: serde_json::Value::Null,
                                     data: PartialSourceRowData {
                                         ordinal: obj.last_modified().map(datetime_to_ordinal),
@@ -113,7 +113,7 @@ impl SourceExecutor for Executor {
 
     async fn get_value(
         &self,
-        key: &FullKeyValue,
+        key: &KeyValue,
         _key_aux_info: &serde_json::Value,
         options: &SourceExecutorReadOptions,
     ) -> Result<PartialSourceRowData> {
@@ -264,7 +264,7 @@ impl Executor {
                     {
                         let decoded_key = decode_form_encoded_url(&s3.object.key)?;
                         changes.push(SourceChange {
-                            key: FullKeyValue::from_single_part(decoded_key),
+                            key: KeyValue::from_single_part(decoded_key),
                             key_aux_info: serde_json::Value::Null,
                             data: PartialSourceRowData::default(),
                         });

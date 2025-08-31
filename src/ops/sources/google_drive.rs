@@ -134,7 +134,7 @@ impl Executor {
             None
         } else if is_supported_file_type(&mime_type) {
             Some(PartialSourceRow {
-                key: FullKeyValue::from_single_part(id),
+                key: KeyValue::from_single_part(id),
                 key_aux_info: serde_json::Value::Null,
                 data: PartialSourceRowData {
                     ordinal: file.modified_time.map(|t| t.try_into()).transpose()?,
@@ -214,7 +214,7 @@ impl Executor {
                 let file_id = file.id.ok_or_else(|| anyhow!("File has no id"))?;
                 if self.is_file_covered(&file_id).await? {
                     changes.push(SourceChange {
-                        key: FullKeyValue::from_single_part(file_id),
+                        key: KeyValue::from_single_part(file_id),
                         key_aux_info: serde_json::Value::Null,
                         data: PartialSourceRowData::default(),
                     });
@@ -328,7 +328,7 @@ impl SourceExecutor for Executor {
 
     async fn get_value(
         &self,
-        key: &FullKeyValue,
+        key: &KeyValue,
         _key_aux_info: &serde_json::Value,
         options: &SourceExecutorReadOptions,
     ) -> Result<PartialSourceRowData> {

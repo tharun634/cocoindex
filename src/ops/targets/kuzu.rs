@@ -528,7 +528,7 @@ fn append_upsert_node(
             &data_coll.schema.key_fields,
             upsert_entry
                 .key
-                .fields_iter_for_export(data_coll.schema.key_fields.len())?
+                .iter()
                 .map(|f| Cow::Owned(value::Value::from(f))),
         )?;
         write!(cypher.query_mut(), ")")?;
@@ -607,7 +607,7 @@ fn append_upsert_rel(
             &data_coll.schema.key_fields,
             upsert_entry
                 .key
-                .fields_iter_for_export(data_coll.schema.key_fields.len())?
+                .iter()
                 .map(|f| Cow::Owned(value::Value::from(f))),
         )?;
         write!(cypher.query_mut(), "]->({TGT_NODE_VAR_NAME})")?;
@@ -635,8 +635,7 @@ fn append_delete_node(
     append_key_pattern(
         cypher,
         &data_coll.schema.key_fields,
-        key.fields_iter_for_export(data_coll.schema.key_fields.len())?
-            .map(|f| Cow::Owned(value::Value::from(f))),
+        key.iter().map(|f| Cow::Owned(value::Value::from(f))),
     )?;
     writeln!(cypher.query_mut(), ")")?;
     writeln!(
@@ -673,7 +672,7 @@ fn append_delete_rel(
         cypher,
         src_key_schema,
         src_node_key
-            .fields_iter_for_export(src_key_schema.len())?
+            .iter()
             .map(|k| Cow::Owned(value::Value::from(k))),
     )?;
 
@@ -682,8 +681,7 @@ fn append_delete_rel(
     append_key_pattern(
         cypher,
         key_schema,
-        key.fields_iter_for_export(key_schema.len())?
-            .map(|k| Cow::Owned(value::Value::from(k))),
+        key.iter().map(|k| Cow::Owned(value::Value::from(k))),
     )?;
 
     write!(
@@ -696,7 +694,7 @@ fn append_delete_rel(
         cypher,
         tgt_key_schema,
         tgt_node_key
-            .fields_iter_for_export(tgt_key_schema.len())?
+            .iter()
             .map(|k| Cow::Owned(value::Value::from(k))),
     )?;
     write!(cypher.query_mut(), ") DELETE {REL_VAR_NAME}")?;
@@ -715,8 +713,7 @@ fn append_maybe_gc_node(
     append_key_pattern(
         cypher,
         &schema.key_fields,
-        key.fields_iter_for_export(schema.key_fields.len())?
-            .map(|f| Cow::Owned(value::Value::from(f))),
+        key.iter().map(|f| Cow::Owned(value::Value::from(f))),
     )?;
     writeln!(cypher.query_mut(), ")")?;
     write!(
@@ -975,11 +972,11 @@ impl TargetFactoryBase for Factory {
                             delete.additional_key
                         );
                     }
-                    let src_key = KeyValue::from_json_for_export(
+                    let src_key = KeyValue::from_json(
                         additional_keys[0].take(),
                         &rel.source.schema.key_fields,
                     )?;
-                    let tgt_key = KeyValue::from_json_for_export(
+                    let tgt_key = KeyValue::from_json(
                         additional_keys[1].take(),
                         &rel.target.schema.key_fields,
                     )?;

@@ -76,7 +76,7 @@ impl SourceExecutor for Executor {
                     if self.pattern_matcher.is_file_included(key) {
                         let ordinal = Some(datetime_to_ordinal(&blob.properties.last_modified));
                         batch.push(PartialSourceRow {
-                            key: FullKeyValue::from_single_part(key.clone()),
+                            key: KeyValue::from_single_part(key.clone()),
                             key_aux_info: serde_json::Value::Null,
                             data: PartialSourceRowData {
                                 ordinal,
@@ -102,7 +102,7 @@ impl SourceExecutor for Executor {
 
     async fn get_value(
         &self,
-        key: &FullKeyValue,
+        key: &KeyValue,
         _key_aux_info: &serde_json::Value,
         options: &SourceExecutorReadOptions,
     ) -> Result<PartialSourceRowData> {

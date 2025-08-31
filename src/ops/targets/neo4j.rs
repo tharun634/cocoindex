@@ -145,7 +145,7 @@ fn json_value_to_bolt_value(value: &serde_json::Value) -> Result<BoltType> {
     Ok(bolt_value)
 }
 
-fn key_to_bolt(key: &KeyValue, schema: &schema::ValueType) -> Result<BoltType> {
+fn key_to_bolt(key: &KeyPart, schema: &schema::ValueType) -> Result<BoltType> {
     value_to_bolt(&key.into(), schema)
 }
 
@@ -456,10 +456,7 @@ impl ExportContext {
         val: &KeyValue,
     ) -> Result<neo4rs::Query> {
         let mut query = query;
-        for (i, val) in val
-            .fields_iter_for_export(self.analyzed_data_coll.schema.key_fields.len())?
-            .enumerate()
-        {
+        for (i, val) in val.iter().enumerate() {
             query = query.param(
                 &self.key_field_params[i],
                 key_to_bolt(

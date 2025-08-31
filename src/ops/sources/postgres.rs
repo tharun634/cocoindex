@@ -408,8 +408,8 @@ impl SourceExecutor for Executor {
                     .iter()
                     .enumerate()
                     .map(|(i, info)| (info.decoder)(&row, i)?.into_key())
-                    .collect::<Result<Box<[KeyValue]>>>()?;
-                let key = FullKeyValue(parts);
+                    .collect::<Result<Box<[KeyPart]>>>()?;
+                let key = KeyValue(parts);
 
                 // Decode value and ordinal
                 let data = self.decode_row_data(&row, options, ordinal_col_index, pk_count)?;
@@ -426,7 +426,7 @@ impl SourceExecutor for Executor {
 
     async fn get_value(
         &self,
-        key: &FullKeyValue,
+        key: &KeyValue,
         _key_aux_info: &serde_json::Value,
         options: &SourceExecutorReadOptions,
     ) -> Result<PartialSourceRowData> {
