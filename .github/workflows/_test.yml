@@ -10,49 +10,56 @@ jobs:
     build-test:
         strategy:
             matrix:
-                python-version: [3.11, 3.13]
-                platform: [ubuntu-latest, macos-latest]
-        runs-on: ${{ matrix.platform }}
+                python-version: [3.11]
+                platform:
+                  - { runner: ubuntu-latest, python_exec: ".venv/bin/python" }
+                  - { runner: ubuntu-24.04-arm, python_exec: ".venv/bin/python" }
+                  - { runner: macos-latest, python_exec: ".venv/bin/python" }
+                  - { runner: macos-13, python_exec: ".venv/bin/python" }
+                  - { runner: windows-latest, python_exec: ".venv\\Scripts\\python" }
+        runs-on: ${{ matrix.platform.runner }}
         steps:
         - uses: actions/checkout@v4
-
-        - run: rustup toolchain install stable --profile minimal
-        - name: Rust Cache
-          uses: Swatinem/rust-cache@v2
-          with:
-            key: ${{ runner.os }}-rust-${{ matrix.python-version }}
-        - name: Rust build
-          run: cargo build --verbose
-        - name: Rust tests
-          run: cargo test --verbose
 
         - uses: actions/setup-python@v5
           id: setup_python
           with:
             python-version: ${{ matrix.python-version }}
             cache: 'pip'
+
+        - run: rustup toolchain install stable --profile minimal
+        - name: Rust Cache
+          uses: Swatinem/rust-cache@v2
+          with:
+            key: rust-${{ matrix.platform.runner }}-${{ matrix.python-version }}
+        - name: Rust tests
+          run: cargo test --verbose
+
         - uses: actions/cache@v4
           with:
             path: .venv
-            key: ${{ runner.os }}-pyenv-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('pyproject.toml') }}
+            key: pyenv-${{ matrix.platform.runner }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('pyproject.toml') }}
             restore-keys: |
-              ${{ runner.os }}-pyenv-${{ steps.setup_python.outputs.python-version }}-
+              pyenv-${{ matrix.platform.runner }}-${{ steps.setup_python.outputs.python-version }}-
+
         - name: Setup venv
           run: |
             python -m venv .venv
         - name: Install Python toolchains
           run: |
-            source .venv/bin/activate
-            pip install maturin mypy pytest pytest-asyncio
+            ${{ matrix.platform.python_exec }} -m pip install maturin mypy pytest pytest-asyncio
         - name: Python build
           run: |
-            source .venv/bin/activate
-            maturin develop -E all
+            ${{ matrix.platform.python_exec }} -m maturin develop -E all
         - name: Python type check (mypy)
           run: |
-            source .venv/bin/activate
-            mypy python
+            ${{ matrix.platform.python_exec }} -m mypy python
         - name: Python tests
+          if: ${{ !startsWith(matrix.platform.runner, 'windows') }}
           run: |
-            source .venv/bin/activate
-            pytest python/cocoindex/tests
+            ${{ matrix.platform.python_exec }} -m pytest --capture=no python/cocoindex/tests
+        - name: Python tests (Windows cmd)
+          if: ${{ startsWith(matrix.platform.runner, 'windows') }}
+          shell: cmd  # Use `cmd` to run test for Windows, as PowerShell doesn't detect exit code by `os._exit(0)` correctly.
+          run: |
+            ${{ matrix.platform.python_exec }} -m pytest --capture=no python/cocoindex/tests
