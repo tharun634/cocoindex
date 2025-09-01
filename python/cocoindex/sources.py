@@ -3,6 +3,7 @@
 from . import op
 from .auth_registry import TransientAuthEntryReference
 from .setting import DatabaseConnectionSpec
+from dataclasses import dataclass
 import datetime
 
 
@@ -70,6 +71,15 @@ class AzureBlob(op.SourceSpec):
     account_access_key: TransientAuthEntryReference[str] | None = None
 
 
+@dataclass
+class PostgresNotification:
+    """Notification for a PostgreSQL table."""
+
+    # Optional: name of the PostgreSQL channel to use.
+    # If not provided, will generate a default channel name.
+    channel_name: str | None = None
+
+
 class Postgres(op.SourceSpec):
     """Import data from a PostgreSQL table."""
 
@@ -87,3 +97,6 @@ class Postgres(op.SourceSpec):
     # Optional: column name to use for ordinal tracking (for incremental updates)
     # Should be a timestamp, serial, or other incrementing column
     ordinal_column: str | None = None
+
+    # Optional: when set, supports change capture from PostgreSQL notification.
+    notification: PostgresNotification | None = None
