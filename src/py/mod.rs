@@ -95,10 +95,27 @@ impl<T> AnyhowIntoPyResult<T> for anyhow::Result<T> {
 }
 
 #[pyfunction]
-fn init(py: Python<'_>, settings: Pythonized<Settings>) -> PyResult<()> {
+fn set_settings_fn(get_settings_fn: Py<PyAny>) -> PyResult<()> {
+    let get_settings_closure = move || {
+        Python::with_gil(|py| {
+            let obj = get_settings_fn
+                .bind(py)
+                .call0()
+                .to_result_with_py_trace(py)?;
+            let py_settings = obj
+                .extract::<Pythonized<Settings>>()
+                .to_result_with_py_trace(py)?;
+            anyhow::Ok(py_settings.into_inner())
+        })
+    };
+    crate::lib_context::set_settings_fn(Box::new(get_settings_closure));
+    Ok(())
+}
+
+#[pyfunction]
+fn init(py: Python<'_>, settings: Pythonized<Option<Settings>>) -> PyResult<()> {
     py.allow_threads(|| -> anyhow::Result<()> {
-        init_lib_context(settings.into_inner())?;
-        Ok(())
+        get_runtime().block_on(async move { init_lib_context(settings.into_inner()).await })
     })
     .into_py_result()
 }
@@ -106,10 +123,9 @@ fn init(py: Python<'_>, settings: Pythonized<Settings>) -> PyResult<()> {
 #[pyfunction]
 fn start_server(py: Python<'_>, settings: Pythonized<ServerSettings>) -> PyResult<()> {
     py.allow_threads(|| -> anyhow::Result<()> {
-        let server = get_runtime().block_on(server::init_server(
-            get_lib_context()?,
-            settings.into_inner(),
-        ))?;
+        let server = get_runtime().block_on(async move {
+            server::init_server(get_lib_context().await?, settings.into_inner()).await
+        })?;
         get_runtime().spawn(server);
         Ok(())
     })
@@ -118,7 +134,7 @@ fn start_server(py: Python<'_>, settings: Pythonized<ServerSettings>) -> PyResul
 
 #[pyfunction]
 fn stop(py: Python<'_>) -> PyResult<()> {
-    py.allow_threads(clear_lib_context);
+    py.allow_threads(|| get_runtime().block_on(clear_lib_context()));
     Ok(())
 }
 
@@ -202,7 +218,7 @@ impl FlowLiveUpdater {
     ) -> PyResult<Bound<'py, PyAny>> {
         let flow = flow.0.clone();
         future_into_py(py, async move {
-            let lib_context = get_lib_context().into_py_result()?;
+            let lib_context = get_lib_context().await.into_py_result()?;
             let live_updater = execution::FlowLiveUpdater::start(
                 flow,
                 lib_context.require_builtin_db_pool().into_py_result()?,
@@ -262,7 +278,7 @@ impl Flow {
             get_runtime()
                 .block_on(async {
                     let exec_plan = self.0.flow.get_execution_plan().await?;
-                    let lib_context = get_lib_context()?;
+                    let lib_context = get_lib_context().await?;
                     let execution_ctx = self.0.use_execution_ctx().await?;
                     execution::dumper::evaluate_and_dump(
                         &exec_plan,
@@ -457,9 +473,9 @@ pub struct SetupChangeBundle(Arc<setup::SetupChangeBundle>);
 #[pymethods]
 impl SetupChangeBundle {
     pub fn describe_async<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let lib_context = get_lib_context().into_py_result()?;
         let bundle = self.0.clone();
         future_into_py(py, async move {
+            let lib_context = get_lib_context().await.into_py_result()?;
             bundle.describe(&lib_context).await.into_py_result()
         })
     }
@@ -469,10 +485,10 @@ impl SetupChangeBundle {
         py: Python<'py>,
         report_to_stdout: bool,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let lib_context = get_lib_context().into_py_result()?;
         let bundle = self.0.clone();
 
         future_into_py(py, async move {
+            let lib_context = get_lib_context().await.into_py_result()?;
             let mut stdout = None;
             let mut sink = None;
             bundle
@@ -493,7 +509,7 @@ impl SetupChangeBundle {
 #[pyfunction]
 fn flow_names_with_setup_async(py: Python<'_>) -> PyResult<Bound<'_, PyAny>> {
     future_into_py(py, async move {
-        let lib_context = get_lib_context().into_py_result()?;
+        let lib_context = get_lib_context().await.into_py_result()?;
         let setup_ctx = lib_context
             .require_persistence_ctx()
             .into_py_result()?
@@ -524,11 +540,15 @@ fn make_drop_bundle(flow_names: Vec<String>) -> PyResult<SetupChangeBundle> {
 }
 
 #[pyfunction]
-fn remove_flow_context(flow_name: String) {
-    let lib_context_locked = crate::lib_context::LIB_CONTEXT.read().unwrap();
-    if let Some(lib_context) = lib_context_locked.as_ref() {
-        lib_context.remove_flow_context(&flow_name)
-    }
+fn remove_flow_context(py: Python<'_>, flow_name: String) -> PyResult<()> {
+    py.allow_threads(|| -> anyhow::Result<()> {
+        get_runtime().block_on(async move {
+            let lib_context = get_lib_context().await.into_py_result()?;
+            lib_context.remove_flow_context(&flow_name);
+            Ok(())
+        })
+    })
+    .into_py_result()
 }
 
 #[pyfunction]
@@ -537,6 +557,19 @@ fn add_auth_entry(key: String, value: Pythonized<serde_json::Value>) -> PyResult
         .add(key, value.into_inner())
         .into_py_result()?;
     Ok(())
+}
+
+#[pyfunction]
+fn get_app_namespace(py: Python<'_>) -> PyResult<String> {
+    let app_namespace = py
+        .allow_threads(|| -> anyhow::Result<_> {
+            get_runtime().block_on(async move {
+                let lib_context = get_lib_context().await?;
+                Ok(lib_context.app_namespace.clone())
+            })
+        })
+        .into_py_result()?;
+    Ok(app_namespace)
 }
 
 #[pyfunction]
@@ -556,6 +589,7 @@ fn seder_roundtrip<'py>(
 #[pyo3(name = "_engine")]
 fn cocoindex_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(init, m)?)?;
+    m.add_function(wrap_pyfunction!(set_settings_fn, m)?)?;
     m.add_function(wrap_pyfunction!(start_server, m)?)?;
     m.add_function(wrap_pyfunction!(stop, m)?)?;
     m.add_function(wrap_pyfunction!(register_function_factory, m)?)?;
@@ -565,6 +599,7 @@ fn cocoindex_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(make_drop_bundle, m)?)?;
     m.add_function(wrap_pyfunction!(remove_flow_context, m)?)?;
     m.add_function(wrap_pyfunction!(add_auth_entry, m)?)?;
+    m.add_function(wrap_pyfunction!(get_app_namespace, m)?)?;
 
     m.add_class::<builder::flow_builder::FlowBuilder>()?;
     m.add_class::<builder::flow_builder::DataCollector>()?;

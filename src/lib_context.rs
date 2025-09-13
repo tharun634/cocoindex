@@ -223,6 +223,7 @@ pub struct LibContext {
     pub db_pools: DbPools,
     pub persistence_ctx: Option<PersistenceContext>,
     pub flows: Mutex<BTreeMap<String, Arc<FlowContext>>>,
+    pub app_namespace: String,
 
     pub global_concurrency_controller: Arc<concur_control::ConcurrencyController>,
 }
@@ -248,9 +249,13 @@ impl LibContext {
     }
 
     pub fn require_persistence_ctx(&self) -> Result<&PersistenceContext> {
-        self.persistence_ctx
-            .as_ref()
-            .ok_or_else(|| anyhow!("Database is required for this operation. Please set COCOINDEX_DATABASE_URL environment variable OR call `cocoindex.init()` with database settings."))
+        self.persistence_ctx.as_ref().ok_or_else(|| {
+            anyhow!(
+                "Database is required for this operation. \
+                         The easiest way is to set COCOINDEX_DATABASE_URL environment variable. \
+                         Please see https://cocoindex.io/docs/core/settings for more details."
+            )
+        })
     }
 
     pub fn require_builtin_db_pool(&self) -> Result<&PgPool> {
@@ -267,7 +272,7 @@ pub fn get_auth_registry() -> &'static Arc<AuthRegistry> {
 }
 
 static LIB_INIT: OnceLock<()> = OnceLock::new();
-pub fn create_lib_context(settings: settings::Settings) -> Result<LibContext> {
+pub async fn create_lib_context(settings: settings::Settings) -> Result<LibContext> {
     LIB_INIT.get_or_init(|| {
         let _ = env_logger::try_init();
 
@@ -278,11 +283,8 @@ pub fn create_lib_context(settings: settings::Settings) -> Result<LibContext> {
 
     let db_pools = DbPools::default();
     let persistence_ctx = if let Some(database_spec) = &settings.database {
-        let (pool, all_setup_states) = get_runtime().block_on(async {
-            let pool = db_pools.get_pool(database_spec).await?;
-            let existing_ss = setup::get_existing_setup_state(&pool).await?;
-            anyhow::Ok((pool, existing_ss))
-        })?;
+        let pool = db_pools.get_pool(database_spec).await?;
+        let all_setup_states = setup::get_existing_setup_state(&pool).await?;
         Some(PersistenceContext {
             builtin_db_pool: pool,
             setup_ctx: tokio::sync::RwLock::new(LibSetupContext {
@@ -299,6 +301,7 @@ pub fn create_lib_context(settings: settings::Settings) -> Result<LibContext> {
         db_pools,
         persistence_ctx,
         flows: Mutex::new(BTreeMap::new()),
+        app_namespace: settings.app_namespace,
         global_concurrency_controller: Arc::new(concur_control::ConcurrencyController::new(
             &concur_control::Options {
                 max_inflight_rows: settings.global_execution_options.source_max_inflight_rows,
@@ -308,24 +311,57 @@ pub fn create_lib_context(settings: settings::Settings) -> Result<LibContext> {
     })
 }
 
-pub static LIB_CONTEXT: RwLock<Option<Arc<LibContext>>> = RwLock::new(None);
+static GET_SETTINGS_FN: Mutex<Option<Box<dyn Fn() -> Result<settings::Settings> + Send + Sync>>> =
+    Mutex::new(None);
+fn get_settings() -> Result<settings::Settings> {
+    let get_settings_fn = GET_SETTINGS_FN.lock().unwrap();
+    let settings = if let Some(get_settings_fn) = &*get_settings_fn {
+        get_settings_fn()?
+    } else {
+        bail!("CocoIndex setting function is not provided");
+    };
+    Ok(settings)
+}
 
-pub(crate) fn init_lib_context(settings: settings::Settings) -> Result<()> {
-    let mut lib_context_locked = LIB_CONTEXT.write().unwrap();
-    *lib_context_locked = Some(Arc::new(create_lib_context(settings)?));
+pub(crate) fn set_settings_fn(
+    get_settings_fn: Box<dyn Fn() -> Result<settings::Settings> + Send + Sync>,
+) {
+    let mut get_settings_fn_locked = GET_SETTINGS_FN.lock().unwrap();
+    *get_settings_fn_locked = Some(get_settings_fn);
+}
+
+static LIB_CONTEXT: LazyLock<tokio::sync::Mutex<Option<Arc<LibContext>>>> =
+    LazyLock::new(|| tokio::sync::Mutex::new(None));
+
+pub(crate) async fn init_lib_context(settings: Option<settings::Settings>) -> Result<()> {
+    error!("Init lib context");
+    let settings = match settings {
+        Some(settings) => settings,
+        None => get_settings()?,
+    };
+    error!("Init lib context with settings: {:?}", settings);
+    let mut lib_context_locked = LIB_CONTEXT.lock().await;
+    *lib_context_locked = Some(Arc::new(create_lib_context(settings).await?));
     Ok(())
 }
 
-pub(crate) fn get_lib_context() -> Result<Arc<LibContext>> {
-    let lib_context_locked = LIB_CONTEXT.read().unwrap();
-    lib_context_locked
-        .as_ref()
-        .cloned()
-        .ok_or_else(|| anyhow!("CocoIndex library is not initialized or already stopped"))
+pub(crate) async fn get_lib_context() -> Result<Arc<LibContext>> {
+    debug!("Get lib context");
+    let mut lib_context_locked = LIB_CONTEXT.lock().await;
+    let lib_context = if let Some(lib_context) = &*lib_context_locked {
+        lib_context.clone()
+    } else {
+        debug!("Get lib context: no lib context found, creating new one");
+        let setting = get_settings()?;
+        let lib_context = Arc::new(create_lib_context(setting).await?);
+        *lib_context_locked = Some(lib_context.clone());
+        lib_context
+    };
+    Ok(lib_context)
 }
 
-pub(crate) fn clear_lib_context() {
-    let mut lib_context_locked = LIB_CONTEXT.write().unwrap();
+pub(crate) async fn clear_lib_context() {
+    let mut lib_context_locked = LIB_CONTEXT.lock().await;
     *lib_context_locked = None;
 }
 
@@ -339,15 +375,17 @@ mod tests {
         assert!(db_pools.pools.lock().unwrap().is_empty());
     }
 
-    #[test]
-    fn test_lib_context_without_database() {
-        let lib_context = create_lib_context(settings::Settings::default()).unwrap();
+    #[tokio::test]
+    async fn test_lib_context_without_database() {
+        let lib_context = create_lib_context(settings::Settings::default())
+            .await
+            .unwrap();
         assert!(lib_context.persistence_ctx.is_none());
         assert!(lib_context.require_builtin_db_pool().is_err());
     }
 
-    #[test]
-    fn test_persistence_context_type_safety() {
+    #[tokio::test]
+    async fn test_persistence_context_type_safety() {
         // This test ensures that PersistenceContext groups related fields together
         let settings = settings::Settings {
             database: Some(settings::DatabaseConnectionSpec {
@@ -361,7 +399,7 @@ mod tests {
         };
 
         // This would fail at runtime due to invalid connection, but we're testing the structure
-        let result = create_lib_context(settings);
+        let result = create_lib_context(settings).await;
         // We expect this to fail due to invalid connection, but the structure should be correct
         assert!(result.is_err());
     }
