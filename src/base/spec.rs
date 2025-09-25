@@ -385,14 +385,71 @@ impl fmt::Display for VectorSimilarityMetric {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "kind")]
+pub enum VectorIndexMethod {
+    Hnsw {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        m: Option<u32>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        ef_construction: Option<u32>,
+    },
+    IvfFlat {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        lists: Option<u32>,
+    },
+}
+
+impl VectorIndexMethod {
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Self::Hnsw { .. } => "Hnsw",
+            Self::IvfFlat { .. } => "IvfFlat",
+        }
+    }
+}
+
+impl fmt::Display for VectorIndexMethod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Hnsw { m, ef_construction } => {
+                let mut parts = Vec::new();
+                if let Some(m) = m {
+                    parts.push(format!("m={}", m));
+                }
+                if let Some(ef) = ef_construction {
+                    parts.push(format!("ef_construction={}", ef));
+                }
+                if parts.is_empty() {
+                    write!(f, "Hnsw")
+                } else {
+                    write!(f, "Hnsw({})", parts.join(","))
+                }
+            }
+            Self::IvfFlat { lists } => {
+                if let Some(lists) = lists {
+                    write!(f, "IvfFlat(lists={lists})")
+                } else {
+                    write!(f, "IvfFlat")
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct VectorIndexDef {
     pub field_name: FieldName,
     pub metric: VectorSimilarityMetric,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub method: Option<VectorIndexMethod>,
 }
 
 impl fmt::Display for VectorIndexDef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}", self.field_name, self.metric)
+        match &self.method {
+            None => write!(f, "{}:{}", self.field_name, self.metric),
+            Some(method) => write!(f, "{}:{}:{}", self.field_name, self.metric, method),
+        }
     }
 }
 
