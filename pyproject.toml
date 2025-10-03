@@ -84,7 +84,6 @@ strict = true
 files = "python/cocoindex,examples"
 exclude = "(\\.venv|site-packages)"
 disable_error_code = ["unused-ignore"]
-explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = [
