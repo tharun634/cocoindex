@@ -1,4 +1,3 @@
-```python
 import datetime
 import functools
 import io
@@ -175,4 +174,3 @@ def search(
             for result in search_results
         ]
     )
-```

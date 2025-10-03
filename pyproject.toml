@@ -84,6 +84,7 @@ strict = true
 files = "python/cocoindex,examples"
 exclude = "(\\.venv|site-packages)"
 disable_error_code = ["unused-ignore"]
+explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = [
@@ -105,4 +106,3 @@ module = [
     "face_recognition",  # Add this for the face recognition errors
 ]
 ignore_missing_imports = true
-explicit_package_base = true
