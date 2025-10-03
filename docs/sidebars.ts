@@ -41,7 +41,20 @@ const sidebars: SidebarsConfig = {
       items: [
         'ops/sources',
         'ops/functions',
-        'ops/targets',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Built-in Targets',
+      link: { type: 'doc', id: 'targets/index' },
+      collapsed: true,
+      items: [
+      
+            'targets/postgres',
+            'targets/qdrant',
+            'targets/lancedb',
+            'targets/neo4j',
+            'targets/kuzu',
       ],
     },
     {
