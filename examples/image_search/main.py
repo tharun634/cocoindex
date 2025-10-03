@@ -150,7 +150,7 @@ class SearchResponse(BaseModel):
 
 
 # --- Search API ---
-@app.get("/search", response_model=SearchResponse)
+@app.get("/search", response_model=SearchResponse) # type: ignore[misc]
 def search(
     q: str = Query(..., description="Search query"),
     limit: int = Query(5, description="Number of results"),
