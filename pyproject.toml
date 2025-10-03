@@ -105,3 +105,4 @@ module = [
     "face_recognition",  # Add this for the face recognition errors
 ]
 ignore_missing_imports = true
+explicit_package_base = true
