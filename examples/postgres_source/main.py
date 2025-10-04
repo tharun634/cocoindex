@@ -1,6 +1,5 @@
 from typing import Any
 import os
-import datetime
 
 from dotenv import load_dotenv
 from psycopg_pool import ConnectionPool

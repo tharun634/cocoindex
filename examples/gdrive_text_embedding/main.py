@@ -23,7 +23,7 @@ def text_to_embedding(
 @cocoindex.flow_def(name="GoogleDriveTextEmbedding")
 def gdrive_text_embedding_flow(
     flow_builder: cocoindex.FlowBuilder, data_scope: cocoindex.DataScope
-):
+) -> None:
     """
     Define an example flow that embeds text into a vector database.
     """
@@ -71,7 +71,7 @@ def gdrive_text_embedding_flow(
     )
 
 
-def search(pool: ConnectionPool, query: str, top_k: int = 5):
+def search(pool: ConnectionPool, query: str, top_k: int = 5) -> list[dict[str, Any]]:
     # Get the table name, for the export target in the gdrive_text_embedding_flow above.
     table_name = cocoindex.utils.get_target_default_name(
         gdrive_text_embedding_flow, "doc_embeddings"
