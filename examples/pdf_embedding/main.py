@@ -96,7 +96,9 @@ def pdf_embedding_flow(
     )
 
 
-def search(pool: ConnectionPool, query: str, top_k: int = 5) -> list[dict[str, str | float]]:
+def search(
+    pool: ConnectionPool, query: str, top_k: int = 5
+) -> list[dict[str, str | float]]:
     # Get the table name, for the export target in the pdf_embedding_flow above.
     table_name = cocoindex.utils.get_target_default_name(
         pdf_embedding_flow, "pdf_embeddings"
@@ -121,14 +123,16 @@ def search(pool: ConnectionPool, query: str, top_k: int = 5) -> list[dict[str, s
 
 
 # Define the search results template using Jinja2
-SEARCH_RESULTS_TEMPLATE = Template("""
+SEARCH_RESULTS_TEMPLATE = Template(
+    """
 Search results:
 {% for result in results %}
 [{{ "%.3f"|format(result.score) }}] {{ result.filename }}
     {{ result.text }}
 ---
 {% endfor %}
-""")
+"""
+)
 
 
 def _main() -> None:

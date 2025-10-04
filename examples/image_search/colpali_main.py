@@ -1,7 +1,7 @@
 import datetime
 import os
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator, List
+from typing import AsyncIterator, List
 
 import cocoindex
 from dotenv import load_dotenv
@@ -29,6 +29,7 @@ print(f"📐 Using ColPali model {COLPALI_MODEL_NAME}")
 
 
 # --- Embedding helpers ---
+
 
 @cocoindex.transform_flow()
 def text_to_colpali_embedding(
@@ -75,6 +76,7 @@ def image_object_embedding_flow(
 
 # --- Lifespan context ---
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     load_dotenv()
@@ -107,6 +109,7 @@ app.mount("/img", StaticFiles(directory="img"), name="img")
 
 # --- Response Models ---
 
+
 class SearchResult(BaseModel):
     filename: str
     score: float
@@ -118,7 +121,7 @@ class SearchResponse(BaseModel):
 
 
 # --- Search API ---
-@app.get("/search", response_model=SearchResponse)
+@app.get("/search", response_model=SearchResponse)  # type: ignore[misc]
 def search(
     q: str = Query(..., description="Search query"),
     limit: int = Query(5, description="Number of results"),

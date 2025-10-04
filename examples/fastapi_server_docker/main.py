@@ -90,7 +90,7 @@ def search(pool: ConnectionPool, query: str, top_k: int = 5) -> list[dict[str, A
 
 
 @asynccontextmanager
-def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     load_dotenv()
     cocoindex.init()
     pool = ConnectionPool(os.getenv("COCOINDEX_DATABASE_URL"))
