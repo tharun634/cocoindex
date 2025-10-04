@@ -95,16 +95,12 @@ module = [
     "psycopg_pool",
     "pgvector.psycopg",
     "psycopg.rows",
-    "marker.*",  # Use wildcard for marker submodules
+    "marker.*",
     "pypdf",
     "pdf2image", 
     "markitdown",
     "openai",
-    "fastapi.*",  # Use wildcard for fastapi submodules
+    "fastapi.*",
     "uvicorn",
-    "face_recognition",  # Add this for the face recognition errors
 ]
 ignore_missing_imports = true
-
-[mypy-face_recognition]
-ignore_errors = true
