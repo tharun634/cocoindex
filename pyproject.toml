@@ -102,5 +102,9 @@ module = [
     "openai",
     "fastapi.*",
     "uvicorn",
+    "face_recognition",
 ]
 ignore_missing_imports = true
+
+[mypy-face_recognition]
+ignore_errors = true
