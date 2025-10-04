@@ -134,7 +134,8 @@ def search(pool: ConnectionPool, query: str, top_k: int = 5) -> list[dict[str, A
             """,
                 (query_vector, top_k),
             )
-            return cur.fetchall()
+            rows: list[dict[str, Any]] = cur.fetchall()
+            return rows
 
 
 def _main() -> None:

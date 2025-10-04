@@ -113,10 +113,11 @@ def search(pool: ConnectionPool, query: str, top_k: int = 5):
             """,
                 (query_vector, top_k),
             )
-            return [
+            results: list[dict[str, str | float]] = [
                 {"filename": row[0], "text": row[1], "score": 1.0 - row[2]}
                 for row in cur.fetchall()
             ]
+            return results
 
 
 # Define the search results template using Jinja2
