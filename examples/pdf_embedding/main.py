@@ -33,7 +33,7 @@ class PdfToMarkdownExecutor:
             temp_file.write(content)
             temp_file.flush()
             text, _, _ = text_from_rendered(self._converter(temp_file.name))
-            return text
+            return str(text)
 
 
 @cocoindex.transform_flow()

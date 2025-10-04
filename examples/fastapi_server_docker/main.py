@@ -6,7 +6,7 @@ from fastapi import Request
 from psycopg_pool import ConnectionPool
 from contextlib import asynccontextmanager
 import os
-from typing import Dict, Any, List
+from typing import Any, AsyncIterator
 
 
 @cocoindex.transform_flow()
@@ -90,7 +90,7 @@ def search(pool: ConnectionPool, query: str, top_k: int = 5) -> list[dict[str, A
 
 
 @asynccontextmanager
-def lifespan(app: FastAPI) -> Generator[None, None, None]:
+def lifespan(app: FastAPI) -> AsyncIterator[None]:
     load_dotenv()
     cocoindex.init()
     pool = ConnectionPool(os.getenv("COCOINDEX_DATABASE_URL"))
@@ -104,12 +104,12 @@ def lifespan(app: FastAPI) -> Generator[None, None, None]:
 fastapi_app = FastAPI(lifespan=lifespan)
 
 
-@fastapi_app.get("/search")
+@fastapi_app.get("/search")  # type: ignore[misc]
 def search_endpoint(
     request: Request,
     q: str = Query(..., description="Search query"),
     limit: int = Query(5, description="Number of results"),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     pool = request.app.state.pool
     results = search(pool, q, limit)
     return {"results": results}

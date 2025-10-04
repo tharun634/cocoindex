@@ -53,7 +53,7 @@ def extract_faces(content: bytes) -> list[FaceBase]:
         ratio = 1.0
         img = orig_img
 
-    locs: list[tuple[int, int, int, int]] = face_recognition.face_locations(  # type: ignore[attr-defined]
+    locs: list[tuple[int, int, int, int]] = face_recognition.face_locations(
         np.array(img), model="cnn"
     )
 
@@ -79,7 +79,7 @@ def extract_faces(content: bytes) -> list[FaceBase]:
 def extract_face_embedding(face: bytes) -> cocoindex.Vector[cocoindex.Float32]:
     """Extract the embedding of a face."""
     img = Image.open(io.BytesIO(face)).convert("RGB")
-    encoding: np.ndarray = face_recognition.face_encodings(  # type: ignore[attr-defined]
+    encoding: np.ndarray = face_recognition.face_encodings(
         np.array(img),
         known_face_locations=[(0, img.width - 1, img.height - 1, 0)],
     )[0]

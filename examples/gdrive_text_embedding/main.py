@@ -3,7 +3,7 @@ from psycopg_pool import ConnectionPool
 import cocoindex
 import datetime
 import os
-
+from typing import Any
 
 @cocoindex.transform_flow()
 def text_to_embedding(
