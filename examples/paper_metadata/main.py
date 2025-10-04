@@ -4,7 +4,6 @@ import tempfile
 import dataclasses
 import datetime
 
-from cocoindex.functions import CustomLanguageSpec
 from marker.config.parser import ConfigParser
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
@@ -128,7 +127,7 @@ def paper_metadata_flow(
         doc["abstract_chunks"] = doc["metadata"]["abstract"].transform(
             cocoindex.functions.SplitRecursively(
                 custom_languages=[
-                    CustomLanguageSpec(
+                    ocoindex.functions.CustomLanguageSpec(
                         language_name="abstract",
                         separators_regex=[r"[.?!]+\s+", r"[:;]\s+", r",\s+", r"\s+"],
                     )
