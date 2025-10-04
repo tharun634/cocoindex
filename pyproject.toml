@@ -88,7 +88,7 @@ disable_error_code = ["unused-ignore"]
 [[tool.mypy.overrides]]
 module = [
     "sentence_transformers",
-    "torch", 
+    "torch",
     "colpali_engine",
     "PIL",
     "qdrant_client",
