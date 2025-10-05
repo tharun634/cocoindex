@@ -3,7 +3,8 @@ import functools
 import io
 import os
 from contextlib import asynccontextmanager
-from typing import Literal, cast, AsyncIterator, Final
+from typing import Literal, cast, AsyncIterator, Final, Optional, List
+from dataclasses import dataclass
 
 import cocoindex
 import torch
@@ -11,7 +12,6 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Query  # type: ignore[import-not-found]
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import-not-found]
 from fastapi.staticfiles import StaticFiles  # type: ignore[import-not-found]
-from pydantic import BaseModel
 from PIL import Image
 from qdrant_client import QdrantClient  # type: ignore[import-not-found]
 from transformers import CLIPModel, CLIPProcessor
@@ -138,15 +138,17 @@ app.add_middleware(
 app.mount("/img", StaticFiles(directory="img"), name="img")
 
 
-# --- Typed response models ---
-class SearchResult(BaseModel):
+# --- Response Dataclasses ---
+@dataclass
+class SearchResult:
     filename: str
     score: float
-    caption: str | None = None
+    caption: Optional[str] = None
 
 
-class SearchResponse(BaseModel):
-    results: list[SearchResult]
+@dataclass
+class SearchResponse:
+    results: List[SearchResult]
 
 
 # --- Search API ---
