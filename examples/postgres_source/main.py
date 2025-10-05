@@ -2,9 +2,9 @@ from typing import Any
 import os
 
 from dotenv import load_dotenv
-from psycopg_pool import ConnectionPool
-from pgvector.psycopg import register_vector
-from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool # type: ignore[import-not-found]
+from pgvector.psycopg import register_vector # type: ignore[import-not-found]
+from psycopg.rows import dict_row # type: ignore[import-not-found]
 from numpy.typing import NDArray
 
 import numpy as np

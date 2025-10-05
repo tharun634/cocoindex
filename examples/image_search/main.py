@@ -8,12 +8,12 @@ from typing import Literal, cast, AsyncIterator, Final
 import cocoindex
 import torch
 from dotenv import load_dotenv
-from fastapi import FastAPI, Query
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, Query # type: ignore[import-not-found]
+from fastapi.middleware.cors import CORSMiddleware # type: ignore[import-not-found]
+from fastapi.staticfiles import StaticFiles # type: ignore[import-not-found]
 from pydantic import BaseModel
 from PIL import Image
-from qdrant_client import QdrantClient
+from qdrant_client import QdrantClient # type: ignore[import-not-found]
 from transformers import CLIPModel, CLIPProcessor
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/")

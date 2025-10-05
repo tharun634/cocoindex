@@ -3,8 +3,8 @@ import tempfile
 import dataclasses
 import os
 
-from markitdown import MarkItDown
-from openai import OpenAI
+from markitdown import MarkItDown # type: ignore[import-not-found]
+from openai import OpenAI # type: ignore[import-not-found]
 
 import cocoindex
 

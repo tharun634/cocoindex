@@ -1,9 +1,9 @@
 import cocoindex
-import uvicorn
+import uvicorn # type: ignore[import-not-found]
 from dotenv import load_dotenv
-from fastapi import FastAPI, Query
-from fastapi import Request
-from psycopg_pool import ConnectionPool
+from fastapi import FastAPI, Query # type: ignore[import-not-found]
+from fastapi import Request # type: ignore[import-not-found]
+from psycopg_pool import ConnectionPool # type: ignore[import-not-found]
 from contextlib import asynccontextmanager
 import os
 from typing import Any, AsyncIterator

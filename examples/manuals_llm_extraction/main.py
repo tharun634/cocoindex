@@ -1,10 +1,10 @@
 import tempfile
 import dataclasses
 
-from marker.converters.pdf import PdfConverter
-from marker.models import create_model_dict
-from marker.output import text_from_rendered
-from marker.config.parser import ConfigParser
+from marker.converters.pdf import PdfConverter # type: ignore[import-not-found]
+from marker.models import create_model_dict # type: ignore[import-not-found]
+from marker.output import text_from_rendered # type: ignore[import-not-found]
+from marker.config.parser import ConfigParser # type: ignore[import-not-found]
 
 import cocoindex
 

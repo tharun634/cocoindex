@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from psycopg_pool import ConnectionPool
+from psycopg_pool import ConnectionPool # type: ignore[import-not-found]
 import cocoindex
 import datetime
 import os

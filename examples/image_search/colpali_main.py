@@ -6,10 +6,10 @@ from dataclasses import dataclass
 
 import cocoindex
 from dotenv import load_dotenv
-from fastapi import FastAPI, Query
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from qdrant_client import QdrantClient
+from fastapi import FastAPI, Query # type: ignore[import-not-found]
+from fastapi.middleware.cors import CORSMiddleware # type: ignore[import-not-found]
+from fastapi.staticfiles import StaticFiles # type: ignore[import-not-found]
+from qdrant_client import QdrantClient # type: ignore[import-not-found]
 
 
 # --- Config ---
