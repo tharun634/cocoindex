@@ -1,11 +1,10 @@
 from typing import Any
 import os
-import datetime
 
 from dotenv import load_dotenv
-from psycopg_pool import ConnectionPool
-from pgvector.psycopg import register_vector  # type: ignore[import-untyped]
-from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool  # type: ignore[import-not-found]
+from pgvector.psycopg import register_vector  # type: ignore[import-not-found]
+from psycopg.rows import dict_row  # type: ignore[import-not-found]
 from numpy.typing import NDArray
 
 import numpy as np
@@ -134,7 +133,8 @@ def search(pool: ConnectionPool, query: str, top_k: int = 5) -> list[dict[str, A
             """,
                 (query_vector, top_k),
             )
-            return cur.fetchall()
+            rows: list[dict[str, Any]] = cur.fetchall()
+            return rows
 
 
 def _main() -> None:

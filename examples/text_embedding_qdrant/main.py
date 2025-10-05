@@ -1,6 +1,6 @@
 import functools
 from dotenv import load_dotenv
-from qdrant_client import QdrantClient
+from qdrant_client import QdrantClient  # type: ignore[import-not-found]
 import cocoindex
 
 # Define Qdrant connection constants

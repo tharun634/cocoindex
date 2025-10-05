@@ -4,10 +4,10 @@ import mimetypes
 
 from dotenv import load_dotenv
 from dataclasses import dataclass
-from pdf2image import convert_from_bytes
+from pdf2image import convert_from_bytes  # type: ignore[import-not-found]
 from io import BytesIO
 
-from qdrant_client import QdrantClient
+from qdrant_client import QdrantClient  # type: ignore[import-not-found]
 
 QDRANT_GRPC_URL = "http://localhost:6334"
 QDRANT_COLLECTION = "MultiFormatIndexings"
