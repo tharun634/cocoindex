@@ -1,5 +1,7 @@
 use crate::builder::exec_ctx::AnalyzedSetupState;
-use crate::ops::{get_function_factory, get_source_factory, get_target_factory};
+use crate::ops::{
+    get_attachment_factory, get_function_factory, get_source_factory, get_target_factory,
+};
 use crate::prelude::*;
 
 use super::plan::*;
@@ -913,6 +915,27 @@ impl AnalyzerContext {
                 let op_name = export_op.name.clone();
                 let export_target_factory = export_op_group.target_factory.clone();
 
+                let attachments = export_op
+                    .spec
+                    .attachments
+                    .iter()
+                    .map(|attachment| {
+                        let attachment_factory = get_attachment_factory(&attachment.kind)?;
+                        let attachment_state = attachment_factory.get_state(
+                            &op_name,
+                            &export_op.spec.target.spec,
+                            serde_json::Value::Object(attachment.spec.clone()),
+                        )?;
+                        Ok((
+                            interface::AttachmentSetupKey(
+                                attachment.kind.clone(),
+                                attachment_state.setup_key,
+                            ),
+                            attachment_state.setup_state,
+                        ))
+                    })
+                    .collect::<Result<IndexMap<_, _>>>()?;
+
                 let export_op_ss = exec_ctx::AnalyzedTargetSetupState {
                     target_kind: target_kind.to_string(),
                     setup_key: data_coll_output.setup_key,
@@ -925,6 +948,7 @@ impl AnalyzerContext {
                             .map(|field| field.value_type.typ.clone())
                             .collect::<Box<[_]>>(),
                     ),
+                    attachments,
                 };
                 targets_analyzed_ss[*idx] = Some(export_op_ss);
 
@@ -956,6 +980,7 @@ impl AnalyzerContext {
                 desired_setup_state,
                 setup_by_user: false,
                 key_type: None,
+                attachments: IndexMap::new(),
             };
             declarations_analyzed_ss.push(decl_ss);
         }
@@ -972,13 +997,37 @@ impl AnalyzerContext {
             op_futs.push(self.analyze_reactive_op(op_scope, reactive_op).await?);
         }
         let collector_len = op_scope.states.lock().unwrap().collectors.len();
+        let scope_qualifier = self.build_scope_qualifier(op_scope);
         let result_fut = async move {
             Ok(AnalyzedOpScope {
                 reactive_ops: try_join_all(op_futs).await?,
                 collector_len,
+                scope_qualifier,
             })
         };
         Ok(result_fut)
+    }
+
+    fn build_scope_qualifier(&self, op_scope: &Arc<OpScope>) -> String {
+        let mut scope_names = Vec::new();
+        let mut current_scope = op_scope.as_ref();
+
+        // Walk up the parent chain to collect scope names
+        while let Some((parent, _)) = &current_scope.parent {
+            scope_names.push(current_scope.name.as_str());
+            current_scope = parent.as_ref();
+        }
+
+        // Reverse to get the correct order (root to leaf)
+        scope_names.reverse();
+
+        // Build the qualifier string
+        let mut result = String::new();
+        for name in scope_names {
+            result.push_str(&name);
+            result.push('.');
+        }
+        result
     }
 }
 
@@ -1062,6 +1111,7 @@ pub async fn analyze_flow(
         let target_factory = get_target_factory(&target_kind)?;
         let analyzed_target_op_group = AnalyzedExportTargetOpGroup {
             target_factory,
+            target_kind: target_kind.clone(),
             op_idx: op_ids.export_op_ids,
         };
         export_ops_futs.extend(
