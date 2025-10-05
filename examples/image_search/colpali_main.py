@@ -1,14 +1,14 @@
 import datetime
 import os
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, List
+from typing import AsyncIterator, List, Optional
+from dataclasses import dataclass
 
 import cocoindex
 from dotenv import load_dotenv
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 from qdrant_client import QdrantClient
 
 
@@ -92,6 +92,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
+# --- Response Dataclasses ---
+
+
+@dataclass
+class SearchResult:
+    filename: str
+    score: float
+    caption: Optional[str] = None
+
+
+@dataclass
+class SearchResponse:
+    results: List[SearchResult]
+
+
 # --- FastAPI app for web API ---
 app = FastAPI(lifespan=lifespan)
 
@@ -105,19 +120,6 @@ app.add_middleware(
 
 # Serve images from the 'img' directory at /img
 app.mount("/img", StaticFiles(directory="img"), name="img")
-
-
-# --- Response Models ---
-
-
-class SearchResult(BaseModel):
-    filename: str
-    score: float
-    caption: str | None = None
-
-
-class SearchResponse(BaseModel):
-    results: List[SearchResult]
 
 
 # --- Search API ---
